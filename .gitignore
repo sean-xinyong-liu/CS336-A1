@@ -161,3 +161,14 @@ cython_debug/
 
 .ruff_cache/
 *.zip
+
+# Local smoke/debug files
+tmp/
+tests/test_*_smoke.py
+
+# Downloaded datasets
+data/
+
+# Generated tokenizer training artifacts
+artifacts/
+*.prof
