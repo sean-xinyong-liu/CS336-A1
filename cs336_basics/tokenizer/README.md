@@ -162,8 +162,8 @@ from trusted sources.
 Train the tokenizer and encode the training and validation splits:
 
 ```bash
-python -m cs336_basics.tokenizer.train_bpe_tinystories --stage all --num-processes 8
-python -m cs336_basics.tokenizer.train_bpe_expts_owt --stage all --num-processes 8
+uv run python -m cs336_basics.tokenizer.train_bpe_tinystories --stage all --num-processes 8
+uv run python -m cs336_basics.tokenizer.train_bpe_expts_owt --stage all --num-processes 8
 ```
 
 Use `--stage train` and `--stage encode` to run the two phases separately. Both
