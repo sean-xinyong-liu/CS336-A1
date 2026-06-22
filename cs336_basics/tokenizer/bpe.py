@@ -1,6 +1,12 @@
 from collections import Counter
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterator
+
+type TokenSequence = tuple[bytes, ...]
+type Pair = tuple[bytes, bytes]
+type TokenSequenceCounts = Counter[TokenSequence]
+type PairCounts = Counter[Pair]
+type PairIndex = dict[Pair, set[TokenSequence]]
 
 
 def init_vocab(special_tokens: list[str]) -> dict[int, bytes]:
@@ -12,68 +18,72 @@ def init_vocab(special_tokens: list[str]) -> dict[int, bytes]:
     return vocab
 
 
-def word_to_bytes(word: str) -> tuple[bytes, ...]:
-    return tuple(bytes([byte]) for byte in word.encode("utf-8"))
+def word_to_bytes(pretoken: str) -> TokenSequence:
+    return tuple(bytes([byte]) for byte in pretoken.encode())
 
 
-def count_pairs(tokenized_word_counts: Counter[tuple[bytes, ...]]) -> Counter[tuple[bytes, bytes]]:
-    pair_counts: Counter[tuple[bytes, bytes]] = Counter()
+def count_pairs(token_sequence_counts: TokenSequenceCounts) -> PairCounts:
+    pair_counts: PairCounts = Counter()
 
-    for word, count in tokenized_word_counts.items():
-        for pair in zip(word, word[1:]):
+    for token_sequence, count in token_sequence_counts.items():
+        for pair in iter_pairs(token_sequence):
             pair_counts[pair] += count
 
     return pair_counts
 
 
-def iter_pairs(word: tuple[bytes, ...]) -> Iterable[tuple[bytes, bytes]]:
-    return zip(word, word[1:])
+def iter_pairs(token_sequence: TokenSequence) -> Iterator[Pair]:
+    return zip(token_sequence, token_sequence[1:])
 
 
 def build_pair_index(
-    tokenized_word_counts: Counter[tuple[bytes, ...]],
-) -> tuple[Counter[tuple[bytes, bytes]], dict[tuple[bytes, bytes], set[tuple[bytes, ...]]]]:
-    pair_counts: Counter[tuple[bytes, bytes]] = Counter()
-    pair_to_tokenized_words: dict[tuple[bytes, bytes], set[tuple[bytes, ...]]] = defaultdict(set)
+    token_sequence_counts: TokenSequenceCounts,
+) -> tuple[PairCounts, PairIndex]:
+    pair_counts: PairCounts = Counter()
+    pair_index: PairIndex = defaultdict(set)
 
-    for tokenized_word, count in tokenized_word_counts.items():
-        for pair in iter_pairs(tokenized_word):
+    for token_sequence, count in token_sequence_counts.items():
+        for pair in iter_pairs(token_sequence):
             pair_counts[pair] += count
-            pair_to_tokenized_words[pair].add(tokenized_word)
+            pair_index[pair].add(token_sequence)
 
-    return pair_counts, pair_to_tokenized_words
+    return pair_counts, pair_index
 
 
-def merge_word(word: tuple[bytes, ...], pair: tuple[bytes, bytes]) -> tuple[bytes, ...]:
+def merge_word(token_sequence: TokenSequence, pair: Pair) -> TokenSequence:
     merged: list[bytes] = []
     index = 0
 
-    while index < len(word):
-        if index < len(word) - 1 and word[index] == pair[0] and word[index + 1] == pair[1]:
+    while index < len(token_sequence):
+        if (
+            index < len(token_sequence) - 1
+            and token_sequence[index] == pair[0]
+            and token_sequence[index + 1] == pair[1]
+        ):
             merged.append(pair[0] + pair[1])
             index += 2
         else:
-            merged.append(word[index])
+            merged.append(token_sequence[index])
             index += 1
 
     return tuple(merged)
 
 
 def merge_words(
-    tokenized_word_counts: Counter[tuple[bytes, ...]],
-    pair: tuple[bytes, bytes],
-) -> Counter[tuple[bytes, ...]]:
-    merged_tokenized_word_counts: Counter[tuple[bytes, ...]] = Counter()
+    token_sequence_counts: TokenSequenceCounts,
+    pair: Pair,
+) -> TokenSequenceCounts:
+    merged_counts: TokenSequenceCounts = Counter()
 
-    for word, count in tokenized_word_counts.items():
-        merged_tokenized_word_counts[merge_word(word, pair)] += count
+    for token_sequence, count in token_sequence_counts.items():
+        merged_counts[merge_word(token_sequence, pair)] += count
 
-    return merged_tokenized_word_counts
+    return merged_counts
 
 
 def _decrement_pair_count(
-    pair_counts: Counter[tuple[bytes, bytes]],
-    pair: tuple[bytes, bytes],
+    pair_counts: PairCounts,
+    pair: Pair,
     count: int,
 ) -> None:
     new_count = pair_counts[pair] - count
@@ -83,68 +93,75 @@ def _decrement_pair_count(
         del pair_counts[pair]
 
 
-def _replace_word(
-    tokenized_word_counts: Counter[tuple[bytes, ...]],
-    pair_counts: Counter[tuple[bytes, bytes]],
-    pair_to_tokenized_words: dict[tuple[bytes, bytes], set[tuple[bytes, ...]]],
-    old_word: tuple[bytes, ...],
-    new_word: tuple[bytes, ...],
+def _update_merged_sequence(
+    token_sequence_counts: TokenSequenceCounts,
+    pair_counts: PairCounts,
+    pair_index: PairIndex,
+    old_sequence: TokenSequence,
+    new_sequence: TokenSequence,
     count: int,
 ) -> None:
-    del tokenized_word_counts[old_word]
+    del token_sequence_counts[old_sequence]
 
-    for pair, occurrences in Counter(iter_pairs(old_word)).items():
+    for pair, occurrences in Counter(iter_pairs(old_sequence)).items():
         _decrement_pair_count(pair_counts, pair, count * occurrences)
-        tokenized_words = pair_to_tokenized_words.get(pair)
-        if tokenized_words is None:
+        indexed_sequences = pair_index.get(pair)
+        if indexed_sequences is None:
             continue
-        tokenized_words.discard(old_word)
-        if not tokenized_words:
-            del pair_to_tokenized_words[pair]
+        indexed_sequences.discard(old_sequence)
+        if not indexed_sequences:
+            del pair_index[pair]
 
-    tokenized_word_counts[new_word] += count
+    token_sequence_counts[new_sequence] += count
 
-    for pair, occurrences in Counter(iter_pairs(new_word)).items():
+    for pair, occurrences in Counter(iter_pairs(new_sequence)).items():
         pair_counts[pair] += count * occurrences
-        pair_to_tokenized_words[pair].add(new_word)
+        pair_index[pair].add(new_sequence)
 
 
 def merge_words_with_index(
-    tokenized_word_counts: Counter[tuple[bytes, ...]],
-    pair_counts: Counter[tuple[bytes, bytes]],
-    pair_to_tokenized_words: dict[tuple[bytes, bytes], set[tuple[bytes, ...]]],
-    pair: tuple[bytes, bytes],
+    token_sequence_counts: TokenSequenceCounts,
+    pair_counts: PairCounts,
+    pair_index: PairIndex,
+    pair: Pair,
 ) -> None:
-    affected_tokenized_words = list(pair_to_tokenized_words.get(pair, ()))
+    affected_sequences = list(pair_index.get(pair, ()))
 
-    for word in affected_tokenized_words:
-        count = tokenized_word_counts.get(word)
+    for token_sequence in affected_sequences:
+        count = token_sequence_counts.get(token_sequence)
         if not count:
             continue
 
-        new_word = merge_word(word, pair)
-        if new_word != word:
-            _replace_word(tokenized_word_counts, pair_counts, pair_to_tokenized_words, word, new_word, count)
+        merged_sequence = merge_word(token_sequence, pair)
+        if merged_sequence != token_sequence:
+            _update_merged_sequence(
+                token_sequence_counts,
+                pair_counts,
+                pair_index,
+                token_sequence,
+                merged_sequence,
+                count,
+            )
 
 
-def build_tokenized_word_counts(word_counts: Counter[str]) -> Counter[tuple[bytes, ...]]:
-    tokenized_word_counts: Counter[tuple[bytes, ...]] = Counter()
+def build_tokenized_word_counts(pretoken_counts: Counter[str]) -> TokenSequenceCounts:
+    token_sequence_counts: TokenSequenceCounts = Counter()
 
-    for word, count in word_counts.items():
-        tokenized_word_counts[word_to_bytes(word)] += count
+    for pretoken, count in pretoken_counts.items():
+        token_sequence_counts[word_to_bytes(pretoken)] += count
 
-    return tokenized_word_counts
+    return token_sequence_counts
 
 
 def train_bpe_from_word_counts(
-    word_counts: Counter[str],
+    pretoken_counts: Counter[str],
     vocab_size: int,
     special_tokens: list[str],
 ) -> tuple[dict[int, bytes], list[tuple[bytes, bytes]]]:
     vocab = init_vocab(special_tokens)
-    merges: list[tuple[bytes, bytes]] = []
-    tokenized_word_counts = build_tokenized_word_counts(word_counts)
-    pair_counts, pair_to_tokenized_words = build_pair_index(tokenized_word_counts)
+    merges: list[Pair] = []
+    token_sequence_counts = build_tokenized_word_counts(pretoken_counts)
+    pair_counts, pair_index = build_pair_index(token_sequence_counts)
 
     while len(vocab) < vocab_size:
         if not pair_counts:
@@ -153,6 +170,6 @@ def train_bpe_from_word_counts(
         best_pair = max(pair_counts, key=lambda pair: (pair_counts[pair], pair))
         vocab[len(vocab)] = best_pair[0] + best_pair[1]
         merges.append(best_pair)
-        merge_words_with_index(tokenized_word_counts, pair_counts, pair_to_tokenized_words, best_pair)
+        merge_words_with_index(token_sequence_counts, pair_counts, pair_index, best_pair)
 
     return vocab, merges

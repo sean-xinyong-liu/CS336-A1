@@ -8,14 +8,15 @@ def train_bpe(
     input_path: str | os.PathLike,
     vocab_size: int,
     special_tokens: list[str],
-    **kwargs,
+    *,
+    num_processes: int | None = None,
 ) -> tuple[dict[int, bytes], list[tuple[bytes, bytes]]]:
     if vocab_size < 256 + len(special_tokens):
         raise ValueError("vocab_size must include all 256 byte tokens and special tokens")
 
-    word_counts = pretokenize_file_parallel(
+    pretoken_counts = pretokenize_file_parallel(
         input_path,
         special_tokens,
-        num_processes=kwargs.get("num_processes"),
+        num_processes=num_processes,
     )
-    return train_bpe_from_word_counts(word_counts, vocab_size, special_tokens)
+    return train_bpe_from_word_counts(pretoken_counts, vocab_size, special_tokens)
