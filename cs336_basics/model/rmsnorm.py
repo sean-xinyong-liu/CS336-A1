@@ -1,7 +1,5 @@
 """Root-mean-square layer normalization."""
 
-import math
-
 import torch
 from torch import Tensor, nn
 
@@ -28,9 +26,9 @@ class RMSNorm(nn.Module):
 
         Perform normalization in float32, then cast back to the input dtype.
         """
-        in_dtype = x.dtype 
+        input_dtype = x.dtype
         x = x.to(torch.float32)
-        scalar = torch.rsqrt(x.pow(2).mean(dim=-1, keepdim=True) + self.eps)
-        result = x * scalar * self.weight
+        rms_inverse = torch.rsqrt(x.pow(2).mean(dim=-1, keepdim=True) + self.eps)
+        result = x * rms_inverse * self.weight
 
-        return result.to(in_dtype)
+        return result.to(input_dtype)

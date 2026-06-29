@@ -31,9 +31,15 @@ class TransformerBlock(nn.Module):
         self.d_model = d_model
         self.num_heads = num_heads
         self.d_ff = d_ff
-        # TODO: construct attn, ffn, ln1, and ln2.
-        raise NotImplementedError("TODO: construct TransformerBlock submodules")
+
+        self.ln1 = RMSNorm(d_model, eps, device, dtype)
+        self.attn = MultiHeadSelfAttention(d_model, num_heads, theta, max_seq_len, device, dtype)
+        self.ln2 = RMSNorm(d_model, eps, device, dtype)
+        self.ffn = SwiGLU(d_model, d_ff, device, dtype)
 
     def forward(self, x: Tensor, token_positions: Tensor | None = None) -> Tensor:
         """Process ``(..., seq_len, d_model)`` and preserve its shape."""
-        raise NotImplementedError("TODO: implement the pre-norm residual block")
+        attn_output = self.attn(self.ln1(x), token_positions)
+        x = x + attn_output
+        ffn_output = self.ffn(self.ln2(x))
+        return x + ffn_output

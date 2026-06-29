@@ -27,11 +27,16 @@ class SwiGLU(nn.Module):
     ) -> None:
         super().__init__()
         self.d_model = d_model
+        if d_ff is None:
+            d_ff = int(8/3 * d_model)
         self.d_ff = d_ff
-        # TODO: if d_ff is None, choose approximately 8/3 * d_model rounded
-        # to a multiple of 64; then construct w1, w2, and w3.
-        raise NotImplementedError("TODO: construct SwiGLU projections")
+        self.w1 = Linear(d_model, d_ff, device, dtype)
+        self.w3 = Linear(d_model, d_ff, device, dtype)
+        self.w2 = Linear(d_ff, d_model, device, dtype)
+        
 
     def forward(self, x: Tensor) -> Tensor:
         """Transform ``(..., d_model)`` into a tensor of the same shape."""
-        raise NotImplementedError("TODO: implement SwiGLU")
+        return self.w2(silu(self.w1(x)) * self.w3(x))
+        
+
