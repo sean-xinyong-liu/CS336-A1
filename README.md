@@ -42,3 +42,8 @@ gunzip owt_valid.txt.gz
 cd ..
 ```
 
+## Package Documentation
+
+- Tokenizer: [cs336_basics/tokenizer/README.md](cs336_basics/tokenizer/README.md)
+- Model: [cs336_basics/model/README.md](cs336_basics/model/README.md)
+- Training: [cs336_basics/training/README.md](cs336_basics/training/README.md)
