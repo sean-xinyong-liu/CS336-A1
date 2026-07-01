@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from cs336_basics.model import TransformerLM
-from cs336_basics.training.data import get_batch
+from cs336_basics.training.batching import get_batch
 from cs336_basics.training.losses import cross_entropy
 
 

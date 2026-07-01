@@ -6,7 +6,7 @@ scheduling, gradient clipping, checkpointing, and logging together.
 
 ## Module Layout
 
-- `data.py`
+- `batching.py`
   - Samples random contiguous language-model batches from a token array.
   - Returns input IDs and next-token targets on the requested PyTorch device.
 - `losses.py`
@@ -23,7 +23,7 @@ scheduling, gradient clipping, checkpointing, and logging together.
 - `config.py`
   - Defines command-line arguments, default hyperparameters, device selection,
     and model dtype mapping.
-- `datasets.py`
+- `token_data.py`
   - Loads raw token arrays with `np.memmap` or `.npy` arrays with
     `np.load(..., mmap_mode="r")`.
   - Performs lightweight dataset sanity checks.

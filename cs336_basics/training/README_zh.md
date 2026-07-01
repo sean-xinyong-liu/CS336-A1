@@ -4,7 +4,7 @@
 
 ## 模块结构
 
-- `data.py`
+- `batching.py`
   - 从 token 数组中随机采样连续的语言模型 batch。
   - 返回输入 token ID 和 next-token target，并放到指定 PyTorch device。
 - `losses.py`
@@ -19,7 +19,7 @@
   - 保存和加载模型状态、optimizer 状态和训练 iteration。
 - `config.py`
   - 定义命令行参数、默认超参、device 选择和模型 dtype 映射。
-- `datasets.py`
+- `token_data.py`
   - 使用 `np.memmap` 加载 raw token 数组，或使用
     `np.load(..., mmap_mode="r")` 加载 `.npy` 数组。
   - 执行轻量数据集 sanity check。

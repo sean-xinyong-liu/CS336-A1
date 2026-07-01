@@ -1,5 +1,4 @@
 """Numerically stable softmax."""
-import torch
 from torch import Tensor
 
 

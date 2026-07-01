@@ -1,4 +1,4 @@
-"""Data-loading helpers for language-model training."""
+"""Batch sampling helpers for language-model training."""
 
 import numpy as np
 import numpy.typing as npt

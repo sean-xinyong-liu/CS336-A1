@@ -11,6 +11,7 @@ from torch import Tensor
 from cs336_basics.tokenizer.train_bpe import train_bpe
 from cs336_basics.tokenizer.tokenizer import BPETokenizer
 from cs336_basics.model import *
+from cs336_basics.decoding import generate_completion, generate_token_ids
 from cs336_basics.training import (
     AdamW,
     cross_entropy,
@@ -620,6 +621,46 @@ def run_load_checkpoint(
     return load_checkpoint(src, model, optimizer)
 
 
+def run_generate_token_ids(
+    model: torch.nn.Module,
+    prompt_token_ids: list[int],
+    max_new_tokens: int,
+    end_token_id: int | None = None,
+    temperature: float = 1.0,
+    top_p: float | None = None,
+) -> list[int]:
+    """Generate token IDs from a language model."""
+    return generate_token_ids(
+        model=model,
+        prompt_token_ids=prompt_token_ids,
+        max_new_tokens=max_new_tokens,
+        end_token_id=end_token_id,
+        temperature=temperature,
+        top_p=top_p,
+    )
+
+
+def run_generate_completion(
+    model: torch.nn.Module,
+    tokenizer: Any,
+    prompt: str,
+    max_new_tokens: int,
+    temperature: float = 1.0,
+    top_p: float | None = None,
+    end_token: str = "<|endoftext|>",
+) -> str:
+    """Generate a text completion from a language model and tokenizer."""
+    return generate_completion(
+        model=model,
+        tokenizer=tokenizer,
+        prompt=prompt,
+        max_new_tokens=max_new_tokens,
+        temperature=temperature,
+        top_p=top_p,
+        end_token=end_token,
+    )
+
+
 def get_tokenizer(
     vocab: dict[int, bytes],
     merges: list[tuple[bytes, bytes]],
@@ -670,5 +711,4 @@ def run_train_bpe(
                 representing that <token1> was merged with <token2>.
                 Merges are ordered by order of creation.
     """
-    # raise NotImplementedError
     return train_bpe(input_path, vocab_size, special_tokens)

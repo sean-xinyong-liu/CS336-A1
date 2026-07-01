@@ -17,7 +17,7 @@ from cs336_basics.training import (
     load_checkpoint,
 )
 from cs336_basics.training.config import parse_args, torch_dtype
-from cs336_basics.training.datasets import load_tokens, validate_tokens
+from cs336_basics.training.token_data import load_tokens, validate_tokens
 from cs336_basics.training.evaluation import estimate_loss
 from cs336_basics.training.monitoring import init_wandb, log_metrics
 from cs336_basics.training.runtime import save_checkpoint_if_configured, set_lr

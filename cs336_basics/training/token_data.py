@@ -1,4 +1,4 @@
-"""Dataset loading and validation helpers for training."""
+"""Token dataset loading and validation helpers for training."""
 
 from pathlib import Path
 
