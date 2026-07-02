@@ -75,5 +75,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--wandb-project")
     parser.add_argument("--wandb-run-name")
     parser.add_argument("--wandb-mode", choices=("online", "offline", "disabled"), default="online")
+    parser.add_argument("--log-file", type=Path)
 
     return parser.parse_args()

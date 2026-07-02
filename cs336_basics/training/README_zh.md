@@ -118,6 +118,7 @@ Optimizer 和 scheduler：
 - `--log-every`
 - `--eval-every`
 - `--eval-iters`
+- `--log-file`
 - `--wandb-project`
 - `--wandb-run-name`
 - `--wandb-mode`
@@ -186,6 +187,10 @@ Console logging 始终启用。如果还想记录到 Weights and Biases：
 
 省略 `--wandb-project`，或设置 `--wandb-mode disabled`，即可避免初始化 Weights and Biases。
 
+使用 `--log-file experiments/runs/base_lr3e-4.jsonl` 可以把每次记录的
+metrics 额外写成 JSONL。记录内容包括 gradient step、learning rate、训练
+loss、可选验证 loss、累计 wall-clock 秒数、已处理 token 数和吞吐量。
+
 ## 快速烟测
 
 创建很小的 raw token 数组，并在 CPU 上跑两个 iteration：
@@ -212,11 +217,13 @@ uv run python -m cs336_basics.training.train_lm \
   --eval-iters 1 \
   --log-every 1 \
   --eval-every 1 \
+  --log-file /tmp/cs336_train_log.jsonl \
   --checkpoint-path /tmp/cs336_train_test.pt \
   --device cpu
 ```
 
-预期输出包含 `iter`、`lr`、`train_loss` 和 `val_loss`。
+预期输出包含 `iter`、`lr`、`train_loss`、`val_loss`、
+`elapsed_seconds`、`tokens_processed` 和 `tokens_per_second`。
 
 ## 测试
 

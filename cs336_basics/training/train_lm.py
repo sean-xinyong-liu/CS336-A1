@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import time
 
 import numpy as np
 import torch
@@ -83,6 +84,8 @@ def maybe_log(
     train_loss: float,
     lr: float,
     iteration: int,
+    start_iter: int,
+    start_time: float,
     args: argparse.Namespace,
     device: torch.device,
     run: object | None,
@@ -96,6 +99,8 @@ def maybe_log(
         "iter": iteration,
         "lr": lr,
         "train_loss": train_loss,
+        "tokens_processed": iteration * args.batch_size * args.context_length,
+        "run_tokens_processed": (iteration - start_iter) * args.batch_size * args.context_length,
     }
     if should_eval and val_tokens is not None:
         metrics["val_loss"] = estimate_loss(
@@ -106,7 +111,11 @@ def maybe_log(
             eval_iters=args.eval_iters,
             device=device,
         )
-    log_metrics(run, metrics)
+
+    elapsed_seconds = time.perf_counter() - start_time
+    metrics["elapsed_seconds"] = elapsed_seconds
+    metrics["tokens_per_second"] = metrics["run_tokens_processed"] / elapsed_seconds
+    log_metrics(run, metrics, args.log_file)
 
 
 def train(args: argparse.Namespace) -> None:
@@ -126,6 +135,7 @@ def train(args: argparse.Namespace) -> None:
     start_iter = load_checkpoint(args.resume_from, model, optimizer) if args.resume_from is not None else 0
     run = init_wandb(args)
     model.train()
+    start_time = time.perf_counter()
 
     for it in range(start_iter, args.max_iters):
         lr = current_lr(args, it)
@@ -134,7 +144,7 @@ def train(args: argparse.Namespace) -> None:
         train_loss = train_step(model, optimizer, train_tokens, args, device)
         iteration = it + 1
 
-        maybe_log(model, val_tokens, train_loss, lr, iteration, args, device, run)
+        maybe_log(model, val_tokens, train_loss, lr, iteration, start_iter, start_time, args, device, run)
         if args.checkpoint_path is not None and iteration % args.checkpoint_every == 0:
             save_checkpoint_if_configured(model, optimizer, iteration, args.checkpoint_path)
 

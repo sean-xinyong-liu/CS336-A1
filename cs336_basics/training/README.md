@@ -130,6 +130,7 @@ Logging and evaluation:
 - `--log-every`
 - `--eval-every`
 - `--eval-iters`
+- `--log-file`
 - `--wandb-project`
 - `--wandb-run-name`
 - `--wandb-mode`
@@ -202,6 +203,11 @@ For local/offline logging:
 
 Set `--wandb-mode disabled` or omit `--wandb-project` to avoid initializing
 Weights and Biases.
+
+Use `--log-file experiments/runs/base_lr3e-4.jsonl` to also write each logged
+metrics row as JSONL. Logged metrics include gradient step, learning rate,
+training loss, optional validation loss, elapsed wall-clock seconds, total
+tokens processed, and throughput.
 
 ## Quick Smoke Test
 
